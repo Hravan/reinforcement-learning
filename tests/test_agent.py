@@ -6,4 +6,4 @@ def test_deterministic_action():
     action = Action(1, 0)
     agent = Agent(action)
     agent.act()
-    assert agent.rewards == [1]
+    assert agent.rewards == [[1]]
