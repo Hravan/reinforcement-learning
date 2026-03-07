@@ -33,3 +33,10 @@ def test_epsilon_greedy_action_choice(mocker):
     mocker.patch('random.random', return_value=0.1)
     agent.act()
     assert agent.action_history == [0, 1, 0]
+
+
+def test_optimal_action():
+    optimal_action = Action(1, 0)
+    subotpimal_action = Action(-1, 0)
+    agent = Agent(optimal_action, subotpimal_action)
+    assert agent.optimal_action == 0

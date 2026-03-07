@@ -17,6 +17,10 @@ class Agent:
     def choice(self):
         action_index = random.randrange(len(self.actions))
         return action_index
+    
+    @property
+    def optimal_action(self):
+        return np.argmax(action.value for action in self.actions)
 
 
 class EpsilonGreedyAgent(Agent):
