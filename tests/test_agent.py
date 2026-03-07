@@ -7,3 +7,5 @@ def test_deterministic_action():
     agent = Agent(action)
     agent.act()
     assert agent.rewards == [[1]]
+    agent.act()
+    assert agent.rewards == [[1, 1]]

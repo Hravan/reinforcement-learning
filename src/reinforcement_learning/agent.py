@@ -10,3 +10,4 @@ class Agent:
         action_index = random.randrange(len(self.actions))
         reward = self.actions[action_index].perform()
         self.rewards[action_index].append(reward)
+    
