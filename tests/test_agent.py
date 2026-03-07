@@ -6,9 +6,9 @@ def test_deterministic_action_history():
     action = Action(1, 0)
     agent = Agent(action)
     agent.act()
-    assert agent.rewards == [[1]]
+    assert agent.reward_estimates == [1]
     agent.act()
-    assert agent.rewards == [[1, 1]]
+    assert agent.reward_estimates == [1]
 
 def test_two_deterministic_actions_history(mocker):
     optimal_action = Action(1, 0)
@@ -19,7 +19,7 @@ def test_two_deterministic_actions_history(mocker):
     mocker.patch('random.randrange', return_value=1)
     agent.act()
     
-    assert agent.rewards == [[1], [-1]]
+    assert agent.reward_estimates == [1, -1]
 
 def test_epsilon_greedy_action_choice(mocker):
     optimal_action = Action(1, 0)
@@ -51,4 +51,4 @@ def test_mean_reward(mocker):
     mocker.patch('random.randrange', return_value=1)
     agent.act()
     
-    assert agent.mean_reward() == 0
+    assert agent.mean_reward == 0
