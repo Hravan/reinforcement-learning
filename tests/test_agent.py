@@ -40,3 +40,15 @@ def test_optimal_action():
     subotpimal_action = Action(-1, 0)
     agent = Agent(optimal_action, subotpimal_action)
     assert agent.optimal_action == 0
+
+
+def test_mean_reward(mocker):
+    optimal_action = Action(1, 0)
+    subotpimal_action = Action(-1, 0)
+    agent = Agent(optimal_action, subotpimal_action)
+    mocker.patch('random.randrange', return_value=0)
+    agent.act()
+    mocker.patch('random.randrange', return_value=1)
+    agent.act()
+    
+    assert agent.mean_reward() == 0
