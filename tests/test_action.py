@@ -10,3 +10,9 @@ def test_gaussian(mocker):
     action = Action.gaussian(0, 1)
     assert action.value == 2
     assert action.std == 1
+
+def test_nonstationary(mocker):
+    action = Action(0, 1, stationary=False)
+    mocker.patch('numpy.random.normal', return_value=0.01)
+    action.perform()
+    assert action.value == 0.01
