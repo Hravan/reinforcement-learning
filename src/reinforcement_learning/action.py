@@ -16,6 +16,9 @@ class Action:
         return reward
     
     @classmethod
-    def gaussian(cls, mean, std):
+    def gaussian(cls, mean, std, **kwargs):
         value = np.random.normal(mean, std)
-        return cls(value, std)
+        return cls(value, std, **kwargs)
+    
+    def __repr__(self):
+        return f'Action(value={self.value}, std={self.std}, stationary={self.stationary})'

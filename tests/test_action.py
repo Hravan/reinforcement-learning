@@ -16,3 +16,7 @@ def test_nonstationary(mocker):
     mocker.patch('numpy.random.normal', return_value=0.01)
     action.perform()
     assert action.value == 0.01
+
+def test_repr():
+    action = Action(0, 1)
+    assert repr(action) == 'Action(value=0, std=1, stationary=True)'
