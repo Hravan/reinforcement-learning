@@ -1,5 +1,14 @@
+import pytest
+
 from reinforcement_learning.agent import Agent, EpsilonGreedyAgent
 from reinforcement_learning.action import Action
+
+
+@pytest.fixture
+def two_actions():
+    optimal_action = Action(1, 0)
+    subotpimal_action = Action(-1, 0)
+    return [optimal_action, subotpimal_action]
 
 
 def test_deterministic_action_history():
@@ -52,3 +61,10 @@ def test_mean_reward(mocker):
     agent.act()
     
     assert agent.mean_reward == 0
+
+
+def test_step_size_constant(two_actions, mocker):
+    agent = Agent(*two_actions, step_size=lambda ctx: 0.4)
+    mocker.patch('random.randrange', return_value=0)
+    agent.act()
+    assert agent.reward_estimates[0] == 0.4
