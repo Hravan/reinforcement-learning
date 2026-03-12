@@ -44,8 +44,8 @@ class Agent:
     
 
 class EpsilonGreedyAgent(Agent):
-    def __init__(self, *actions, epsilon=0):
-        super().__init__(*actions)
+    def __init__(self, *actions, epsilon=0, **kwargs):
+        super().__init__(*actions, **kwargs)
         self.epsilon = epsilon
 
     def choice(self):
