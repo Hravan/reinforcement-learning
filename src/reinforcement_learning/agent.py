@@ -36,7 +36,7 @@ class Agent:
     
     @property
     def optimal_action(self):
-        return np.argmax(action.value for action in self.actions)
+        return np.argmax([action.value for action in self.actions])
     
     @property
     def mean_reward(self):

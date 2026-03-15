@@ -11,6 +11,16 @@ def two_actions():
     return [optimal_action, subotpimal_action]
 
 
+def test_random_choice(two_actions, mocker):
+    agent = Agent(*two_actions)
+    mocker.patch('random.randrange', return_value=1)
+    agent.act()
+    assert agent.action_history == [1]
+    mocker.patch('random.randrange', return_value=0)
+    agent.act()
+    assert agent.action_history == [1, 0]
+
+
 def test_deterministic_action_history():
     action = Action(1, 0)
     agent = Agent(action)
@@ -49,6 +59,8 @@ def test_optimal_action():
     subotpimal_action = Action(-1, 0)
     agent = Agent(optimal_action, subotpimal_action)
     assert agent.optimal_action == 0
+    agent = Agent(subotpimal_action, optimal_action)
+    assert agent.optimal_action == 1
 
 
 def test_mean_reward(mocker):
