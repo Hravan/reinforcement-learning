@@ -1,24 +1,24 @@
 import pytest
 
-from reinforcement_learning.agent import Agent, EpsilonGreedyAgent
+from reinforcement_learning.agent import Agent, EpsilonGreedyAgent, ConstantStepSize
 from reinforcement_learning.action import Action
 
 
 @pytest.fixture
 def two_actions():
     optimal_action = Action(1, 0)
-    subotpimal_action = Action(-1, 0)
-    return [optimal_action, subotpimal_action]
+    suboptimal_action = Action(-1, 0)
+    return [optimal_action, suboptimal_action]
 
 
 def test_random_choice(two_actions, mocker):
     agent = Agent(*two_actions)
     mocker.patch('random.randrange', return_value=1)
     agent.act()
-    assert agent.action_history == [1]
+    assert agent.experience.action_history == [1]
     mocker.patch('random.randrange', return_value=0)
     agent.act()
-    assert agent.action_history == [1, 0]
+    assert agent.experience.action_history == [1, 0]
 
 
 def test_deterministic_action_history():
@@ -31,8 +31,8 @@ def test_deterministic_action_history():
 
 def test_two_deterministic_actions_history(mocker):
     optimal_action = Action(1, 0)
-    subotpimal_action = Action(-1, 0)
-    agent = Agent(optimal_action, subotpimal_action)
+    suboptimal_action = Action(-1, 0)
+    agent = Agent(optimal_action, suboptimal_action)
     mocker.patch('random.randrange', return_value=0)
     agent.act()
     mocker.patch('random.randrange', return_value=1)
@@ -51,7 +51,7 @@ def test_epsilon_greedy_action_choice(mocker):
     agent.act()
     mocker.patch('random.random', return_value=0.1)
     agent.act()
-    assert agent.action_history == [0, 1, 0]
+    assert agent.experience.action_history == [0, 1, 0]
 
 
 def test_optimal_action():
@@ -76,7 +76,7 @@ def test_mean_reward(mocker):
 
 
 def test_step_size_constant(two_actions, mocker):
-    agent = Agent(*two_actions, step_size=lambda ctx: 0.4)
+    agent = Agent(*two_actions, step_size=ConstantStepSize(0.4))
     mocker.patch('random.randrange', return_value=0)
     agent.act()
     assert agent.reward_estimates[0] == 0.4

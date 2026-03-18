@@ -7,14 +7,14 @@ def test_ucb_one_action():
     agent = Agent(action, action_selection_method=UCB(2))
     assert agent.select_action() == 0
 
-def test_two_actions_first_exploin(mocker):
+def test_two_actions_first_exploit(mocker):
     action1 = Action.gaussian(mean=0, std=1)
     action2 = Action.gaussian(mean=0, std=1)
     agent = Agent(action1, action2, action_selection_method=UCB(2))
     mocker.patch('random.choice', return_value=0)
     agent.act()
     agent.act()
-    agent.action_history == [0, 1]
+    agent.experience.action_history == [0, 1]
 
 
 def test_explore_when_action_value_close_to_greedy():
