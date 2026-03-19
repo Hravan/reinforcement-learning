@@ -11,7 +11,7 @@ class Agent:
         self.actions = actions
         # TODO: make reward estimates part of the reward selection and estimation class (or two classes)
         self.reward_estimates = [initial_reward_value for _ in self.actions]
-        self.experience = Experience(initial_reward_value, len(self.actions))
+        self.experience = Experience()
 
         if step_size is not None:
             self.step_size = MethodType(step_size, self)
