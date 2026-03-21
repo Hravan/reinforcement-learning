@@ -4,10 +4,11 @@ from types import MethodType
 import numpy as np
 
 from reinforcement_learning.action import Experience
+from reinforcement_learning.action_selection import RandomActionSelection, EpsilonGreedy
 
 
 class Agent:
-    def __init__(self, *actions, initial_reward_value=0, step_size=None, action_selection_method=None):
+    def __init__(self, *actions, initial_reward_value=0, step_size=None, action_selection_method=RandomActionSelection()):
         self.actions = actions
         # TODO: make reward estimates part of the reward selection and estimation class (or two classes)
         self.reward_estimates = [initial_reward_value for _ in self.actions]
@@ -22,13 +23,10 @@ class Agent:
         action_index = self.select_action()
         reward = self.actions[action_index].perform()
         self.experience.update(action_index, reward)
+        self.select_action.update(action_index, reward)
 
         current_estimate = self.reward_estimates[action_index]
         self.reward_estimates[action_index] = current_estimate + self.step_size() * (reward - current_estimate)
-    
-    def select_action(self):
-        action_index = random.randrange(len(self.actions))
-        return action_index
     
     @property
     def optimal_action(self):
@@ -52,15 +50,7 @@ class Agent:
 
 class EpsilonGreedyAgent(Agent):
     def __init__(self, *actions, epsilon=0, **kwargs):
-        super().__init__(*actions, **kwargs)
-        self.epsilon = epsilon
-
-    def select_action(self):
-        if random.random() > 1 - self.epsilon:
-            action_index = random.randrange(len(self.actions))
-        else:
-            action_index = np.argmax(self.reward_estimates)
-        return action_index
+        super().__init__(*actions, action_selection_method=EpsilonGreedy(epsilon), **kwargs)
 
 
 class ConstantStepSize:

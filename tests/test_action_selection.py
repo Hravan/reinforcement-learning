@@ -33,16 +33,16 @@ def test_gradient_bandit():
     gradient_bandit = GradientBandit(alpha=0.1, n_actions=2, baseline=0)
     action_index = 0
     reward = 1
-    gradient_bandit.update_preferences(action_index, reward)
+    gradient_bandit.update(action_index, reward)
     assert gradient_bandit.action_preferences == [0.05, -0.05]
 
 
 def test_select_with_gradient_bandit(mocker):
-    action1 = Action.gaussian(0, 1)
-    action2 = Action.gaussian(0, 1)
+    action1 = Action.gaussian(1, 0)
+    action2 = Action.gaussian(1, 0)
     gradient_bandit = GradientBandit(alpha=0.1, baseline=0)
     agent = Agent(action1, action2, action_selection_method=gradient_bandit)
-    mocker.patch('random.choice', return_value=1)
+    mocker.patch('random.choices', return_value=[1])
     agent.act()
-    gradient_bandit.action_preferences[1] == 0.1 * 0.5
-    gradient_bandit.action_preferences[0] == -0.1 * 0.5
+    assert gradient_bandit.action_preferences[1] == 0.1 * 0.5
+    assert gradient_bandit.action_preferences[0] == -0.1 * 0.5
