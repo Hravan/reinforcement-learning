@@ -1,0 +1,90 @@
+reinforcement_learning -- class diagram (Mermaid classDiagram syntax)
+
+Scope: chapter 2, k-armed bandits.
+
+classDiagram
+    class Action {
+        +float value
+        +float std
+        +bool stationary
+        +perform() float
+        +gaussian(mean, std, **kwargs)$ Action
+    }
+
+    class Experience {
+        +list~int~ action_history
+        +float sum_rewards
+        +update(action_index, reward)
+        +n_selected(action_index) int
+        +last_action int
+        +n_selected_last_action() int
+        +mean_reward float
+        +len() int
+    }
+
+    class Agent {
+        +tuple~Action~ actions
+        +list~float~ reward_estimates
+        +Experience experience
+        +act()
+        +optimal_action int
+        +mean_reward float
+        +step_size() float
+        +n_selected(action_index) int
+        +n_choices int
+    }
+
+    class EpsilonGreedyAgent {
+        +__init__(*actions, epsilon, **kwargs)
+    }
+
+    class ActionSelectionMethod {
+        <<interface, duck-typed>>
+        +__call__(agent) int
+        +update(action_index, reward)
+    }
+
+    class StepSizeMethod {
+        <<interface, duck-typed>>
+        +__call__(agent) float
+    }
+
+    class RandomActionSelection
+    class EpsilonGreedy {
+        +float epsilon
+    }
+    class UCB {
+        +float exploration_coefficient
+    }
+    class GradientBandit {
+        +float alpha
+        +float baseline
+        +list~float~ action_preferences
+        +action_probabilities list~float~
+    }
+    class ConstantStepSize {
+        +float step_size
+    }
+
+    Agent "1" *-- "1" Experience : experience
+    Agent "1" o-- "1..*" Action : actions
+    EpsilonGreedyAgent --|> Agent
+    Agent ..> ActionSelectionMethod : select_action (injected via MethodType)
+    Agent ..> StepSizeMethod : step_size (injected via MethodType)
+    RandomActionSelection ..|> ActionSelectionMethod
+    EpsilonGreedy ..|> ActionSelectionMethod
+    UCB ..|> ActionSelectionMethod
+    GradientBandit ..|> ActionSelectionMethod
+    ConstantStepSize ..|> StepSizeMethod
+
+Notes:
+
+- ActionSelectionMethod and StepSizeMethod are duck-typed protocols, not
+  real Python base classes: any callable with the shown signature qualifies.
+- Agent.__init__ binds injected strategy objects onto the instance with
+  types.MethodType, so agent.select_action() / agent.step_size() dispatch
+  to the injected strategy; with none given, Agent falls back to its own
+  default step_size method and RandomActionSelection.
+- EpsilonGreedyAgent is a thin Agent subclass that wires up EpsilonGreedy
+  as the action-selection strategy.
+</content>
