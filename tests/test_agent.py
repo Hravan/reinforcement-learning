@@ -76,7 +76,7 @@ def test_mean_reward(mocker):
 
 
 def test_step_size_constant(two_actions, mocker):
-    agent = Agent(*two_actions, step_size=ConstantStepSize(0.4))
+    agent = Agent(*two_actions, step_size_method=ConstantStepSize(0.4))
     mocker.patch('random.randrange', return_value=0)
     agent.act()
     assert agent.reward_estimates[0] == 0.4
@@ -84,6 +84,6 @@ def test_step_size_constant(two_actions, mocker):
 
 def test_custom_action_selection(two_actions):
     agent = Agent(*two_actions, action_selection_method=lambda selection_context: 1)
-    assert agent.select_action() == 1
-    assert agent.select_action() == 1
-    assert agent.select_action() == 1
+    assert agent.action_selection_method(agent) == 1
+    assert agent.action_selection_method(agent) == 1
+    assert agent.action_selection_method(agent) == 1

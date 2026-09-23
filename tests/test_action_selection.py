@@ -5,7 +5,7 @@ from reinforcement_learning.action_selection import UCB, GradientBandit
 def test_ucb_one_action():
     action = Action.gaussian(mean=0, std=1)
     agent = Agent(action, action_selection_method=UCB(2))
-    assert agent.select_action() == 0
+    assert agent.action_selection_method(agent) == 0
 
 def test_two_actions_first_exploit(mocker):
     action1 = Action.gaussian(mean=0, std=1)
@@ -25,7 +25,7 @@ def test_explore_when_action_value_close_to_greedy():
     agent.act()
     agent.act()
     # At this stage 1 is a nongreedy action with value close to the greedy action
-    assert agent.select_action() == 1
+    assert agent.action_selection_method(agent) == 1
     assert agent.reward_estimates[0] > agent.reward_estimates[1]
 
 

@@ -26,10 +26,11 @@ classDiagram
         +tuple~Action~ actions
         +list~float~ reward_estimates
         +Experience experience
+        +ActionSelectionMethod action_selection_method
+        +StepSizeMethod step_size_method
         +act()
         +optimal_action int
         +mean_reward float
-        +step_size() float
         +n_selected(action_index) int
         +n_choices int
     }
@@ -65,26 +66,29 @@ classDiagram
     class ConstantStepSize {
         +float step_size
     }
+    class SampleAverageStepSize
 
     Agent "1" *-- "1" Experience : experience
     Agent "1" o-- "1..*" Action : actions
     EpsilonGreedyAgent --|> Agent
-    Agent ..> ActionSelectionMethod : select_action (injected via MethodType)
-    Agent ..> StepSizeMethod : step_size (injected via MethodType)
+    Agent "1" *-- "1" ActionSelectionMethod : action_selection_method
+    Agent "1" *-- "1" StepSizeMethod : step_size_method
     RandomActionSelection ..|> ActionSelectionMethod
     EpsilonGreedy ..|> ActionSelectionMethod
     UCB ..|> ActionSelectionMethod
     GradientBandit ..|> ActionSelectionMethod
     ConstantStepSize ..|> StepSizeMethod
+    SampleAverageStepSize ..|> StepSizeMethod
 
 Notes:
 
 - ActionSelectionMethod and StepSizeMethod are duck-typed protocols, not
   real Python base classes: any callable with the shown signature qualifies.
-- Agent.__init__ binds injected strategy objects onto the instance with
-  types.MethodType, so agent.select_action() / agent.step_size() dispatch
-  to the injected strategy; with none given, Agent falls back to its own
-  default step_size method and RandomActionSelection.
+- Agent holds action_selection_method and step_size_method as plain
+  attributes and calls them as self.action_selection_method(self) /
+  self.step_size_method(self) from act().
+- SampleAverageStepSize is the default step_size_method (1 / n times this
+  action was chosen).
 - EpsilonGreedyAgent is a thin Agent subclass that wires up EpsilonGreedy
   as the action-selection strategy.
 </content>
