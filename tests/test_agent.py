@@ -1,6 +1,12 @@
 import pytest
 
-from reinforcement_learning.agent import Agent, EpsilonGreedyAgent, ConstantStepSize
+from reinforcement_learning.agent import (
+    Agent,
+    EpsilonGreedyAgent,
+    ConstantStepSize,
+    SampleAverageStepSize,
+    IncrementalValueEstimation,
+)
 from reinforcement_learning.action import Action
 
 
@@ -76,7 +82,7 @@ def test_mean_reward(mocker):
 
 
 def test_step_size_constant(two_actions, mocker):
-    agent = Agent(*two_actions, step_size_method=ConstantStepSize(0.4))
+    agent = Agent(*two_actions, value_estimation_method=IncrementalValueEstimation(2, step_size_method=ConstantStepSize(0.4)))
     mocker.patch('random.randrange', return_value=0)
     agent.act()
     assert agent.reward_estimates[0] == 0.4
@@ -87,3 +93,45 @@ def test_custom_action_selection(two_actions):
     assert agent.action_selection_method(agent) == 1
     assert agent.action_selection_method(agent) == 1
     assert agent.action_selection_method(agent) == 1
+
+
+def test_sample_average_step_size():
+    step_size_method = SampleAverageStepSize()
+    agent = Agent(Action(1, 0))
+    agent.act()
+    assert step_size_method(agent) == 1
+    agent.act()
+    assert step_size_method(agent) == 0.5
+    agent.act()
+    assert step_size_method(agent) == 1 / 3
+
+
+def test_incremental_value_estimation_initial_value():
+    value_estimation_method = IncrementalValueEstimation(3, initial_value=5)
+    assert value_estimation_method.estimates == [5, 5, 5]
+
+
+def test_incremental_value_estimation_default_step_size():
+    value_estimation_method = IncrementalValueEstimation(1)
+    assert isinstance(value_estimation_method.step_size_method, SampleAverageStepSize)
+
+
+def test_incremental_value_estimation_update():
+    value_estimation_method = IncrementalValueEstimation(2, step_size_method=ConstantStepSize(0.4))
+    value_estimation_method.update(None, 0, 1)
+    assert value_estimation_method.estimates == [0.4, 0]
+
+
+def test_agent_default_value_estimation_method(two_actions):
+    agent = Agent(*two_actions)
+    assert isinstance(agent.value_estimation_method, IncrementalValueEstimation)
+
+
+def test_agent_without_value_estimation_method(mocker):
+    action = Action(1, 0)
+    agent = Agent(action, value_estimation_method=None)
+    mocker.patch('random.randrange', return_value=0)
+    agent.act()
+    assert agent.value_estimation_method is None
+    with pytest.raises(AttributeError):
+        agent.reward_estimates

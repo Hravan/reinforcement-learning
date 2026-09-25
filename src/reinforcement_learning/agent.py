@@ -4,36 +4,39 @@ from reinforcement_learning.action import Experience
 from reinforcement_learning.action_selection import RandomActionSelection, EpsilonGreedy
 
 
+_DEFAULT_VALUE_ESTIMATION_METHOD = object()
+
+
 class Agent:
     """A bandit agent that selects actions and learns reward estimates.
 
     Composes an action-selection method (which action to choose next) and a
-    step-size method (how much weight to give the most recent reward) to
-    implement one of the action-value methods from chapter 2.
+    value-estimation method (how to learn per-action reward estimates from
+    experience) to implement one of the action-value methods from chapter 2.
     """
 
-    def __init__(self, *actions, initial_reward_value=0, step_size_method=None, action_selection_method=None):
+    def __init__(self, *actions, action_selection_method=None, value_estimation_method=_DEFAULT_VALUE_ESTIMATION_METHOD):
         """Initializes the agent.
 
         Args:
             *actions: The `Action`s the agent can choose between.
-            initial_reward_value: Initial value for every action's reward
-                estimate.
-            step_size_method: Callable `(agent) -> float` deciding how much
-                weight to give the most recent reward. Defaults to
-                `SampleAverageStepSize()`.
             action_selection_method: Callable `(agent) -> int` deciding
                 which action to choose next. Defaults to
                 `RandomActionSelection()`.
+            value_estimation_method: `ValueEstimationMethod` maintaining
+                per-action reward estimates. Defaults to
+                `IncrementalValueEstimation(len(actions))`. Pass `None`
+                explicitly for a method that needs no value estimates (e.g.
+                a `GradientBandit`-driven agent).
         """
         self.actions = actions
-        # TODO: make reward estimates part of the reward selection and estimation class (or two classes)
-        self.reward_estimates = [initial_reward_value for _ in self.actions]
         self.experience = Experience()
-        self.step_size_method = step_size_method if step_size_method is not None else SampleAverageStepSize()
         self.action_selection_method = (
             action_selection_method if action_selection_method is not None else RandomActionSelection()
         )
+        if value_estimation_method is _DEFAULT_VALUE_ESTIMATION_METHOD:
+            value_estimation_method = IncrementalValueEstimation(len(actions))
+        self.value_estimation_method = value_estimation_method
 
     def act(self):
         """Chooses an action, performs it, and updates the agent's state."""
@@ -41,9 +44,8 @@ class Agent:
         reward = self.actions[action_index].perform()
         self.experience.update(action_index, reward)
         self.action_selection_method.update(action_index, reward)
-
-        current_estimate = self.reward_estimates[action_index]
-        self.reward_estimates[action_index] = current_estimate + self.step_size_method(self) * (reward - current_estimate)
+        if self.value_estimation_method is not None:
+            self.value_estimation_method.update(self, action_index, reward)
 
     @property
     def optimal_action(self):
@@ -54,6 +56,11 @@ class Agent:
     def mean_reward(self):
         """Mean reward obtained by the agent so far."""
         return self.experience.mean_reward
+
+    @property
+    def reward_estimates(self):
+        """Per-action reward estimates, from `value_estimation_method`."""
+        return self.value_estimation_method.estimates
 
     def n_selected(self, action_index):
         """Counts how many times an action has been chosen so far.
@@ -124,3 +131,32 @@ class SampleAverageStepSize:
             chosen action.
         """
         return 1 / agent.experience.n_selected_last_action()
+
+
+class IncrementalValueEstimation:
+    """A value-estimation method that incrementally updates reward estimates."""
+
+    def __init__(self, n_actions, initial_value=0, step_size_method=None):
+        """Initializes the value-estimation method.
+
+        Args:
+            n_actions: Number of actions to keep a reward estimate for.
+            initial_value: Initial value for every action's reward estimate.
+            step_size_method: Callable `(agent) -> float` deciding how much
+                weight to give the most recent reward. Defaults to
+                `SampleAverageStepSize()`.
+        """
+        self.estimates = [initial_value for _ in range(n_actions)]
+        self.step_size_method = step_size_method if step_size_method is not None else SampleAverageStepSize()
+
+    def update(self, agent, action_index, reward):
+        """Updates the estimate for the chosen action towards the reward.
+
+        Args:
+            agent: The `Agent` this method belongs to, passed on to
+                `step_size_method`.
+            action_index: Index of the action that was chosen.
+            reward: The reward received for that action.
+        """
+        current_estimate = self.estimates[action_index]
+        self.estimates[action_index] = current_estimate + self.step_size_method(agent) * (reward - current_estimate)

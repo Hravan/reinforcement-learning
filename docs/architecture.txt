@@ -24,13 +24,13 @@ classDiagram
 
     class Agent {
         +tuple~Action~ actions
-        +list~float~ reward_estimates
         +Experience experience
         +ActionSelectionMethod action_selection_method
-        +StepSizeMethod step_size_method
+        +ValueEstimationMethod value_estimation_method
         +act()
         +optimal_action int
         +mean_reward float
+        +reward_estimates list~float~
         +n_selected(action_index) int
         +n_choices int
     }
@@ -48,6 +48,17 @@ classDiagram
     class StepSizeMethod {
         <<interface, duck-typed>>
         +__call__(agent) float
+    }
+
+    class ValueEstimationMethod {
+        <<interface, duck-typed>>
+        +list~float~ estimates
+        +update(agent, action_index, reward)
+    }
+
+    class IncrementalValueEstimation {
+        +list~float~ estimates
+        +StepSizeMethod step_size_method
     }
 
     class RandomActionSelection
@@ -72,23 +83,35 @@ classDiagram
     Agent "1" o-- "1..*" Action : actions
     EpsilonGreedyAgent --|> Agent
     Agent "1" *-- "1" ActionSelectionMethod : action_selection_method
-    Agent "1" *-- "1" StepSizeMethod : step_size_method
+    Agent "1" *-- "0..1" ValueEstimationMethod : value_estimation_method
     RandomActionSelection ..|> ActionSelectionMethod
     EpsilonGreedy ..|> ActionSelectionMethod
     UCB ..|> ActionSelectionMethod
     GradientBandit ..|> ActionSelectionMethod
+    IncrementalValueEstimation ..|> ValueEstimationMethod
+    IncrementalValueEstimation "1" *-- "1" StepSizeMethod : step_size_method
     ConstantStepSize ..|> StepSizeMethod
     SampleAverageStepSize ..|> StepSizeMethod
 
 Notes:
 
-- ActionSelectionMethod and StepSizeMethod are duck-typed protocols, not
-  real Python base classes: any callable with the shown signature qualifies.
-- Agent holds action_selection_method and step_size_method as plain
+- ActionSelectionMethod, StepSizeMethod and ValueEstimationMethod are
+  duck-typed protocols, not real Python base classes: any object with the
+  shown shape qualifies.
+- Agent holds action_selection_method and value_estimation_method as plain
   attributes and calls them as self.action_selection_method(self) /
-  self.step_size_method(self) from act().
-- SampleAverageStepSize is the default step_size_method (1 / n times this
-  action was chosen).
+  self.value_estimation_method.update(self, action_index, reward) from
+  act().
+- value_estimation_method is optional: None means the agent keeps no
+  per-action reward estimates. GradientBandit is the example: its action
+  preferences have no interpretation as action values (per the book), so a
+  GradientBandit-driven agent has no use for a ValueEstimationMethod at
+  all. EpsilonGreedy and UCB, by contrast, read Agent.reward_estimates and
+  so require one.
+- Agent.reward_estimates is a read-only property delegating to
+  value_estimation_method.estimates.
+- IncrementalValueEstimation updates its estimates using a StepSizeMethod,
+  defaulting to SampleAverageStepSize (1 / n times this action was chosen).
 - EpsilonGreedyAgent is a thin Agent subclass that wires up EpsilonGreedy
   as the action-selection strategy.
 </content>
