@@ -11,11 +11,23 @@ def test_gaussian(mocker):
     assert action.value == 2
     assert action.std == 1
 
-def test_nonstationary(mocker):
+def test_perform_does_not_drift(mocker):
     action = Action(0, 1, stationary=False)
     mocker.patch('numpy.random.normal', return_value=0.01)
     action.perform()
+    assert action.value == 0
+
+def test_drift(mocker):
+    action = Action(0, 1, stationary=False)
+    mocker.patch('numpy.random.normal', return_value=0.01)
+    action.drift()
     assert action.value == 0.01
+
+def test_drift_stationary_is_noop(mocker):
+    action = Action(0, 1, stationary=True)
+    mocker.patch('numpy.random.normal', return_value=0.01)
+    action.drift()
+    assert action.value == 0
 
 def test_repr():
     action = Action(0, 1)

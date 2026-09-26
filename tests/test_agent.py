@@ -17,6 +17,17 @@ def two_actions():
     return [optimal_action, suboptimal_action]
 
 
+def test_act_drifts_every_action_not_just_the_chosen_one(mocker):
+    action0 = Action(0, 1, stationary=False)
+    action1 = Action(0, 1, stationary=False)
+    agent = Agent(action0, action1)
+    mocker.patch('random.randrange', return_value=0)
+    mocker.patch('numpy.random.normal', return_value=0.01)
+    agent.act()
+    assert action0.value == 0.01
+    assert action1.value == 0.01
+
+
 def test_random_choice(two_actions, mocker):
     agent = Agent(*two_actions)
     mocker.patch('random.randrange', return_value=1)

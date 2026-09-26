@@ -8,6 +8,7 @@ classDiagram
         +float std
         +bool stationary
         +perform() float
+        +drift()
         +gaussian(mean, std, **kwargs)$ Action
     }
 
@@ -41,8 +42,15 @@ classDiagram
 
     class ActionSelectionMethod {
         <<interface, duck-typed>>
-        +__call__(agent) int
+        +__call__(context) int
         +update(action_index, reward)
+    }
+
+    class ActionSelectionContext {
+        +int n_actions
+        +list~float~ reward_estimates
+        +list~int~ n_selected_per_action
+        +int n_choices
     }
 
     class StepSizeMethod {
@@ -84,10 +92,15 @@ classDiagram
     EpsilonGreedyAgent --|> Agent
     Agent "1" *-- "1" ActionSelectionMethod : action_selection_method
     Agent "1" *-- "0..1" ValueEstimationMethod : value_estimation_method
+    Agent ..> ActionSelectionContext : builds
     RandomActionSelection ..|> ActionSelectionMethod
     EpsilonGreedy ..|> ActionSelectionMethod
     UCB ..|> ActionSelectionMethod
     GradientBandit ..|> ActionSelectionMethod
+    RandomActionSelection ..> ActionSelectionContext
+    EpsilonGreedy ..> ActionSelectionContext
+    UCB ..> ActionSelectionContext
+    GradientBandit ..> ActionSelectionContext
     IncrementalValueEstimation ..|> ValueEstimationMethod
     IncrementalValueEstimation "1" *-- "1" StepSizeMethod : step_size_method
     ConstantStepSize ..|> StepSizeMethod
@@ -99,9 +112,16 @@ Notes:
   duck-typed protocols, not real Python base classes: any object with the
   shown shape qualifies.
 - Agent holds action_selection_method and value_estimation_method as plain
-  attributes and calls them as self.action_selection_method(self) /
+  attributes and calls them as self.action_selection_method(context) /
   self.value_estimation_method.update(self, action_index, reward) from
-  act().
+  act(). action_selection_method never receives the Agent itself, only the
+  ActionSelectionContext built for that call.
+- ActionSelectionContext is a plain, precomputed snapshot: n_actions,
+  reward_estimates (None if the agent has no value_estimation_method),
+  n_selected_per_action and n_choices are all computed once when Agent
+  builds it, with no reference back to Agent. This is what decouples
+  action-selection strategies from Agent's other internals (experience,
+  value_estimation_method, etc.).
 - value_estimation_method is optional: None means the agent keeps no
   per-action reward estimates. GradientBandit is the example: its action
   preferences have no interpretation as action values (per the book), so a
@@ -114,4 +134,8 @@ Notes:
   defaulting to SampleAverageStepSize (1 / n times this action was chosen).
 - EpsilonGreedyAgent is a thin Agent subclass that wires up EpsilonGreedy
   as the action-selection strategy.
+- Action.perform() only samples a reward. Action.drift() applies one
+  random-walk step to the true value (a no-op if stationary). Agent.act()
+  calls perform() on the chosen action and drift() on every action, so all
+  actions drift each step regardless of which was chosen.
 </content>

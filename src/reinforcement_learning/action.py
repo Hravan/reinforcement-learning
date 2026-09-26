@@ -12,26 +12,28 @@ class Action:
         Args:
             value: The action's true value (mean reward).
             std: Standard deviation of the reward distribution.
-            stationary: If False, `value` takes a small random walk step
-                every time the action is performed.
+            stationary: If False, `drift()` takes a small random walk step
+                each time it is called.
         """
         self.value = value
         self.std = std
         self.stationary = stationary
 
     def perform(self) -> Reward:
-        """Samples a reward from the action's distribution.
-
-        If the action is nonstationary, its true value also drifts by a
-        small random step as a side effect.
+        """Samples a reward from the action's current distribution.
 
         Returns:
             The sampled reward.
         """
-        reward = np.random.normal(self.value, self.std)
+        return np.random.normal(self.value, self.std)
+
+    def drift(self):
+        """Applies one random-walk step to the true value, if nonstationary.
+
+        No-op for a stationary action.
+        """
         if not self.stationary:
             self.value = self.value + np.random.normal(0, 0.01)
-        return reward
 
     @classmethod
     def gaussian(cls, mean, std, **kwargs):

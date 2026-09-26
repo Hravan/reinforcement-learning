@@ -46,6 +46,8 @@ class Agent:
         self.action_selection_method.update(action_index, reward)
         if self.value_estimation_method is not None:
             self.value_estimation_method.update(self, action_index, reward)
+        for action in self.actions:
+            action.drift()
 
     @property
     def optimal_action(self):
