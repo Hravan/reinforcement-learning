@@ -1,11 +1,29 @@
 from reinforcement_learning.agent import Agent
 from reinforcement_learning.action import Action
-from reinforcement_learning.action_selection import UCB, GradientBandit
+from reinforcement_learning.action_selection import ActionSelectionContext, UCB, GradientBandit
+
+def test_action_selection_context_with_value_estimation():
+    action1 = Action(1, 0)
+    action2 = Action(2, 0)
+    agent = Agent(action1, action2)
+    context = ActionSelectionContext(agent)
+    assert context.n_actions == 2
+    assert context.experience is agent.experience
+    assert context.reward_estimates == [0, 0]
+
+
+def test_action_selection_context_without_value_estimation():
+    action1 = Action(1, 0)
+    action2 = Action(2, 0)
+    agent = Agent(action1, action2, value_estimation_method=None)
+    context = ActionSelectionContext(agent)
+    assert context.reward_estimates is None
+
 
 def test_ucb_one_action():
     action = Action.gaussian(mean=0, std=1)
     agent = Agent(action, action_selection_method=UCB(2))
-    assert agent.action_selection_method(agent) == 0
+    assert agent.action_selection_method(ActionSelectionContext(agent)) == 0
 
 def test_two_actions_first_exploit(mocker):
     action1 = Action.gaussian(mean=0, std=1)
@@ -25,7 +43,7 @@ def test_explore_when_action_value_close_to_greedy():
     agent.act()
     agent.act()
     # At this stage 1 is a nongreedy action with value close to the greedy action
-    assert agent.action_selection_method(agent) == 1
+    assert agent.action_selection_method(ActionSelectionContext(agent)) == 1
     assert agent.reward_estimates[0] > agent.reward_estimates[1]
 
 

@@ -100,10 +100,10 @@ def test_step_size_constant(two_actions, mocker):
 
 
 def test_custom_action_selection(two_actions):
-    agent = Agent(*two_actions, action_selection_method=lambda selection_context: 1)
-    assert agent.action_selection_method(agent) == 1
-    assert agent.action_selection_method(agent) == 1
-    assert agent.action_selection_method(agent) == 1
+    agent = Agent(*two_actions, action_selection_method=lambda context: 1)
+    assert agent.action_selection_method(agent._action_selection_context) == 1
+    assert agent.action_selection_method(agent._action_selection_context) == 1
+    assert agent.action_selection_method(agent._action_selection_context) == 1
 
 
 def test_sample_average_step_size():

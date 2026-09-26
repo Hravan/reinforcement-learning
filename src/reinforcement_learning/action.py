@@ -4,17 +4,16 @@ import numpy as np
 Reward: TypeAlias = float
 
 class Action:
-    """A bandit action drawn from a Gaussian reward distribution."""
+    """A bandit action drawn from a Gaussian reward distribution.
+
+    Args:
+        value: The action's true value (mean reward).
+        std: Standard deviation of the reward distribution.
+        stationary: If False, `drift()` takes a small random walk step each
+            time it is called.
+    """
 
     def __init__(self, value: float, std: float, stationary=True):
-        """Initializes the action.
-
-        Args:
-            value: The action's true value (mean reward).
-            std: Standard deviation of the reward distribution.
-            stationary: If False, `drift()` takes a small random walk step
-                each time it is called.
-        """
         self.value = value
         self.std = std
         self.stationary = stationary
@@ -59,7 +58,6 @@ class Experience:
     """The history of actions chosen and rewards received by an agent."""
 
     def __init__(self):
-        """Initializes an empty experience."""
         self.action_history = []
         self.sum_rewards = 0
         self._n_selected = {}

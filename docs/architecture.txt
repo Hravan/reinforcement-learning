@@ -28,6 +28,7 @@ classDiagram
         +Experience experience
         +ActionSelectionMethod action_selection_method
         +ValueEstimationMethod value_estimation_method
+        -ActionSelectionContext _action_selection_context
         +act()
         +optimal_action int
         +mean_reward float
@@ -48,9 +49,8 @@ classDiagram
 
     class ActionSelectionContext {
         +int n_actions
+        +Experience experience
         +list~float~ reward_estimates
-        +list~int~ n_selected_per_action
-        +int n_choices
     }
 
     class StepSizeMethod {
@@ -92,7 +92,8 @@ classDiagram
     EpsilonGreedyAgent --|> Agent
     Agent "1" *-- "1" ActionSelectionMethod : action_selection_method
     Agent "1" *-- "0..1" ValueEstimationMethod : value_estimation_method
-    Agent ..> ActionSelectionContext : builds
+    Agent "1" *-- "1" ActionSelectionContext : _action_selection_context
+    ActionSelectionContext "1" o-- "1" Experience : experience
     RandomActionSelection ..|> ActionSelectionMethod
     EpsilonGreedy ..|> ActionSelectionMethod
     UCB ..|> ActionSelectionMethod
@@ -114,14 +115,19 @@ Notes:
 - Agent holds action_selection_method and value_estimation_method as plain
   attributes and calls them as self.action_selection_method(context) /
   self.value_estimation_method.update(self, action_index, reward) from
-  act(). action_selection_method never receives the Agent itself, only the
-  ActionSelectionContext built for that call.
-- ActionSelectionContext is a plain, precomputed snapshot: n_actions,
-  reward_estimates (None if the agent has no value_estimation_method),
-  n_selected_per_action and n_choices are all computed once when Agent
-  builds it, with no reference back to Agent. This is what decouples
-  action-selection strategies from Agent's other internals (experience,
-  value_estimation_method, etc.).
+  act(). action_selection_method never receives the Agent itself, only its
+  ActionSelectionContext.
+- Agent builds _action_selection_context once, in __init__, and reuses the
+  same instance for every act() call: it holds n_actions (fixed for the
+  agent's lifetime), a reference to the same Experience instance Agent uses
+  (n_selected(action_index) and len() are O(1), so nothing needs
+  precomputing), and a reference to reward_estimates (None if the agent has
+  no value_estimation_method). Both experience and reward_estimates are
+  mutated in place elsewhere, so the same context instance always reflects
+  current state without being rebuilt. It has no reference back to Agent
+  itself, so action-selection strategies stay decoupled from Agent's other
+  internals (action_selection_method, value_estimation_method, the actual
+  Action objects and their true values).
 - value_estimation_method is optional: None means the agent keeps no
   per-action reward estimates. GradientBandit is the example: its action
   preferences have no interpretation as action values (per the book), so a
