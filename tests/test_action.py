@@ -1,4 +1,4 @@
-from reinforcement_learning.action import Action
+from reinforcement_learning.action import Action, Experience
 
 
 def test_perform():
@@ -20,3 +20,37 @@ def test_nonstationary(mocker):
 def test_repr():
     action = Action(0, 1)
     assert repr(action) == 'Action(value=0, std=1, stationary=True)'
+
+
+def test_experience_n_selected():
+    experience = Experience()
+    experience.update(0, 1)
+    experience.update(1, 2)
+    experience.update(0, 3)
+    assert experience.n_selected(0) == 2
+    assert experience.n_selected(1) == 1
+    assert experience.n_selected(2) == 0
+
+
+def test_experience_last_action_and_n_selected_last_action():
+    experience = Experience()
+    experience.update(0, 1)
+    experience.update(1, 2)
+    assert experience.last_action == 1
+    assert experience.n_selected_last_action() == 1
+    experience.update(1, 3)
+    assert experience.n_selected_last_action() == 2
+
+
+def test_experience_mean_reward():
+    experience = Experience()
+    experience.update(0, 1)
+    experience.update(1, 3)
+    assert experience.mean_reward == 2
+
+
+def test_experience_len():
+    experience = Experience()
+    experience.update(0, 1)
+    experience.update(1, 2)
+    assert len(experience) == 2
