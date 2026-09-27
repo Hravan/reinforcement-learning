@@ -1,5 +1,3 @@
-import numpy as np
-
 from reinforcement_learning.action import Experience
 from reinforcement_learning.action_selection import ActionSelectionContext, RandomActionSelection, EpsilonGreedy
 
@@ -15,42 +13,42 @@ class Agent:
     experience) to implement one of the action-value methods from chapter 2.
 
     Args:
-        *actions: The `Action`s the agent can choose between.
         action_selection_method: Callable `(context) -> int` deciding which
             action to choose next. Defaults to `RandomActionSelection()`.
         value_estimation_method: `ValueEstimationMethod` maintaining
             per-action reward estimates. Defaults to
-            `IncrementalValueEstimation(len(actions))`. Pass `None`
-            explicitly for a method that needs no value estimates (e.g. a
+            `IncrementalValueEstimation(n_actions)`. Pass `None` explicitly
+            for a method that needs no value estimates (e.g. a
             `GradientBandit`-driven agent).
     """
 
-    def __init__(self, *actions, action_selection_method=None, value_estimation_method=_DEFAULT_VALUE_ESTIMATION_METHOD):
-        self.actions = actions
+    def __init__(self, action_selection_method=None, value_estimation_method=_DEFAULT_VALUE_ESTIMATION_METHOD):
+        self.n_actions = None
         self.experience = Experience()
         self.action_selection_method = (
             action_selection_method if action_selection_method is not None else RandomActionSelection()
         )
-        if value_estimation_method is _DEFAULT_VALUE_ESTIMATION_METHOD:
-            value_estimation_method = IncrementalValueEstimation(len(actions))
         self.value_estimation_method = value_estimation_method
-        self._action_selection_context = ActionSelectionContext(self)
+        self._action_selection_context = None
 
-    def act(self):
-        """Chooses an action, performs it, and updates the agent's state."""
+    def act(self, environment):
+        """Chooses an action, performs it in the environment, and learns from the reward.
+
+        Args:
+            environment: The `Environment` to act in.
+        """
+        if self._action_selection_context is None:
+            self.n_actions = environment.n_actions
+            if self.value_estimation_method is _DEFAULT_VALUE_ESTIMATION_METHOD:
+                self.value_estimation_method = IncrementalValueEstimation(self.n_actions)
+            self._action_selection_context = ActionSelectionContext(self)
+
         action_index = self.action_selection_method(self._action_selection_context)
-        reward = self.actions[action_index].perform()
+        reward = environment.step(action_index)
         self.experience.update(action_index, reward)
         self.action_selection_method.update(action_index, reward)
         if self.value_estimation_method is not None:
             self.value_estimation_method.update(self, action_index, reward)
-        for action in self.actions:
-            action.drift()
-
-    @property
-    def optimal_action(self):
-        """Index of the action with the highest true value."""
-        return np.argmax([action.value for action in self.actions])
 
     @property
     def mean_reward(self):
@@ -66,7 +64,7 @@ class Agent:
         """Counts how many times an action has been chosen so far.
 
         Args:
-            action_index: Index of the action into `self.actions`.
+            action_index: Index of the action.
 
         Returns:
             The number of times this action appears in the history.
@@ -83,14 +81,13 @@ class EpsilonGreedyAgent(Agent):
     """An agent that selects actions using the epsilon-greedy method.
 
     Args:
-        *actions: The `Action`s the agent can choose between.
         epsilon: Probability of choosing a random action instead of the
             greedy one.
         **kwargs: Forwarded to `Agent.__init__`.
     """
 
-    def __init__(self, *actions, epsilon=0, **kwargs):
-        super().__init__(*actions, action_selection_method=EpsilonGreedy(epsilon), **kwargs)
+    def __init__(self, epsilon=0, **kwargs):
+        super().__init__(action_selection_method=EpsilonGreedy(epsilon), **kwargs)
 
 
 class ConstantStepSize:

@@ -16,7 +16,7 @@ class ActionSelectionContext:
     """
 
     def __init__(self, agent: Agent):
-        self.n_actions = len(agent.actions)
+        self.n_actions = agent.n_actions
         self.experience = agent.experience
         self.reward_estimates = (
             agent.reward_estimates if agent.value_estimation_method is not None else None

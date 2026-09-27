@@ -23,14 +23,20 @@ classDiagram
         +len() int
     }
 
-    class Agent {
+    class Environment {
         +tuple~Action~ actions
+        +int n_actions
+        +step(action_index) float
+        +optimal_action int
+    }
+
+    class Agent {
+        +int n_actions
         +Experience experience
         +ActionSelectionMethod action_selection_method
         +ValueEstimationMethod value_estimation_method
         -ActionSelectionContext _action_selection_context
-        +act()
-        +optimal_action int
+        +act(environment)
         +mean_reward float
         +reward_estimates list~float~
         +n_selected(action_index) int
@@ -38,7 +44,7 @@ classDiagram
     }
 
     class EpsilonGreedyAgent {
-        +__init__(*actions, epsilon, **kwargs)
+        +__init__(epsilon, **kwargs)
     }
 
     class ActionSelectionMethod {
@@ -88,7 +94,8 @@ classDiagram
     class SampleAverageStepSize
 
     Agent "1" *-- "1" Experience : experience
-    Agent "1" o-- "1..*" Action : actions
+    Environment "1" o-- "1..*" Action : actions
+    Agent ..> Environment : act(environment)
     EpsilonGreedyAgent --|> Agent
     Agent "1" *-- "1" ActionSelectionMethod : action_selection_method
     Agent "1" *-- "0..1" ValueEstimationMethod : value_estimation_method
@@ -117,9 +124,11 @@ Notes:
   self.value_estimation_method.update(self, action_index, reward) from
   act(). action_selection_method never receives the Agent itself, only its
   ActionSelectionContext.
-- Agent builds _action_selection_context once, in __init__, and reuses the
-  same instance for every act() call: it holds n_actions (fixed for the
-  agent's lifetime), a reference to the same Experience instance Agent uses
+- Agent.n_actions and _action_selection_context are both None until the
+  first act() call, at which point n_actions is set from
+  environment.n_actions and _action_selection_context is built and then
+  reused for every subsequent act() call. ActionSelectionContext holds
+  n_actions, a reference to the same Experience instance Agent uses
   (n_selected(action_index) and len() are O(1), so nothing needs
   precomputing), and a reference to reward_estimates (None if the agent has
   no value_estimation_method). Both experience and reward_estimates are
@@ -128,6 +137,16 @@ Notes:
   itself, so action-selection strategies stay decoupled from Agent's other
   internals (action_selection_method, value_estimation_method, the actual
   Action objects and their true values).
+- Agent does not hold a reference to Environment. act(environment) takes it
+  as a plain argument each call and never stores it. Agent only ever reads
+  environment.n_actions (to size its value estimates and context) and
+  environment.step(action_index) (to get a reward); it never sees the
+  actual Action objects or their true values.
+- Environment owns the Action objects and their dynamics. step(action_index)
+  samples a reward from that action and then calls drift() on every action,
+  so all actions drift each step regardless of which was chosen.
+  optimal_action (ground truth, evaluation-only) lives here, not on Agent —
+  a real agent never sees true values, only rewards.
 - value_estimation_method is optional: None means the agent keeps no
   per-action reward estimates. GradientBandit is the example: its action
   preferences have no interpretation as action values (per the book), so a
@@ -141,7 +160,5 @@ Notes:
 - EpsilonGreedyAgent is a thin Agent subclass that wires up EpsilonGreedy
   as the action-selection strategy.
 - Action.perform() only samples a reward. Action.drift() applies one
-  random-walk step to the true value (a no-op if stationary). Agent.act()
-  calls perform() on the chosen action and drift() on every action, so all
-  actions drift each step regardless of which was chosen.
+  random-walk step to the true value (a no-op if stationary).
 </content>
