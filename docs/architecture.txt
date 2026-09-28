@@ -44,7 +44,7 @@ classDiagram
     }
 
     class EpsilonGreedyAgent {
-        +__init__(epsilon, **kwargs)
+        +__init__(environment, epsilon, **kwargs)
     }
 
     class ActionSelectionMethod {
@@ -71,6 +71,7 @@ classDiagram
     }
 
     class IncrementalValueEstimation {
+        +float initial_value
         +list~float~ estimates
         +StepSizeMethod step_size_method
     }
@@ -93,6 +94,29 @@ classDiagram
     }
     class SampleAverageStepSize
 
+    class Metric {
+        +name str
+        +__call__(agent, environment) float
+    }
+    class MeanReward
+    class OptimalActionRate
+
+    class Experiment {
+        +int n_runs
+        +int n_steps
+        +Metric metric
+        +run(agents, action_factory, group_name) ExperimentResult
+    }
+
+    class ExperimentResult {
+        +ndarray raw
+        +list~str~ labels
+        +str metric_name
+        +str group_name
+        +frame DataFrame
+        +plot()
+    }
+
     Agent "1" *-- "1" Experience : experience
     Environment "1" o-- "1..*" Action : actions
     Agent ..> Environment : act(environment)
@@ -113,6 +137,12 @@ classDiagram
     IncrementalValueEstimation "1" *-- "1" StepSizeMethod : step_size_method
     ConstantStepSize ..|> StepSizeMethod
     SampleAverageStepSize ..|> StepSizeMethod
+    MeanReward --|> Metric
+    OptimalActionRate --|> Metric
+    Experiment "1" *-- "1" Metric : metric
+    Experiment ..> Environment : run()
+    Experiment ..> Agent : run()
+    Experiment ..> ExperimentResult : run()
 
 Notes:
 
@@ -124,11 +154,14 @@ Notes:
   self.value_estimation_method.update(self, action_index, reward) from
   act(). action_selection_method never receives the Agent itself, only its
   ActionSelectionContext.
-- Agent.n_actions and _action_selection_context are both None until the
-  first act() call, at which point n_actions is set from
-  environment.n_actions and _action_selection_context is built and then
-  reused for every subsequent act() call. ActionSelectionContext holds
-  n_actions, a reference to the same Experience instance Agent uses
+- Agent.__init__ takes environment to read environment.n_actions, which
+  sizes n_actions, the default value_estimation_method and
+  _action_selection_context. Neither __init__ nor act(environment) stores
+  the environment itself; Agent only ever reads environment.n_actions and
+  calls environment.step(action_index) — it never sees the actual Action
+  objects or their true values. _action_selection_context is built once,
+  in __init__, and reused for every act() call: it holds n_actions, a
+  reference to the same Experience instance Agent uses
   (n_selected(action_index) and len() are O(1), so nothing needs
   precomputing), and a reference to reward_estimates (None if the agent has
   no value_estimation_method). Both experience and reward_estimates are
@@ -137,11 +170,6 @@ Notes:
   itself, so action-selection strategies stay decoupled from Agent's other
   internals (action_selection_method, value_estimation_method, the actual
   Action objects and their true values).
-- Agent does not hold a reference to Environment. act(environment) takes it
-  as a plain argument each call and never stores it. Agent only ever reads
-  environment.n_actions (to size its value estimates and context) and
-  environment.step(action_index) (to get a reward); it never sees the
-  actual Action objects or their true values.
 - Environment owns the Action objects and their dynamics. step(action_index)
   samples a reward from that action and then calls drift() on every action,
   so all actions drift each step regardless of which was chosen.
@@ -161,4 +189,16 @@ Notes:
   as the action-selection strategy.
 - Action.perform() only samples a reward. Action.drift() applies one
   random-walk step to the true value (a no-op if stationary).
+- Metric.name is a property computed from type(self).__name__. Subclasses
+  implement __call__.
+- Experiment holds n_runs, n_steps and metric. run() takes agents (a list
+  of `(environment) -> Agent` factories), action_factory (a
+  `() -> list[Action]` called once per run) and group_name.
+  action_factory's result is deep-copied once per agent per run, so each
+  agent gets its own Environment. On the first run, run() takes each
+  agent's label from repr(agent) right after that agent is constructed.
+- ExperimentResult.raw has shape (n_agents, n_runs, n_steps). frame
+  averages it over runs, producing one row per (agent, step) with columns
+  metric_name, group_name and step. plot() renders frame as a line plot of
+  metric_name over step, grouped by group_name.
 </content>

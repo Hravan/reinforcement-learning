@@ -7,7 +7,7 @@ def test_action_selection_context_with_value_estimation(mocker):
     action1 = Action(1, 0)
     action2 = Action(2, 0)
     environment = Environment(action1, action2)
-    agent = Agent()
+    agent = Agent(environment)
     mocker.patch('random.randrange', return_value=0)
     agent.act(environment)
     context = agent._action_selection_context
@@ -20,7 +20,7 @@ def test_action_selection_context_without_value_estimation(mocker):
     action1 = Action(1, 0)
     action2 = Action(2, 0)
     environment = Environment(action1, action2)
-    agent = Agent(value_estimation_method=None)
+    agent = Agent(environment, value_estimation_method=None)
     mocker.patch('random.randrange', return_value=0)
     agent.act(environment)
     assert agent._action_selection_context.reward_estimates is None
@@ -29,7 +29,7 @@ def test_action_selection_context_without_value_estimation(mocker):
 def test_ucb_one_action():
     action = Action.gaussian(mean=0, std=1)
     environment = Environment(action)
-    agent = Agent(action_selection_method=UCB(2))
+    agent = Agent(environment, action_selection_method=UCB(2))
     agent.act(environment)
     assert agent.experience.action_history == [0]
 
@@ -37,7 +37,7 @@ def test_two_actions_first_exploit(mocker):
     action1 = Action.gaussian(mean=0, std=1)
     action2 = Action.gaussian(mean=0, std=1)
     environment = Environment(action1, action2)
-    agent = Agent(action_selection_method=UCB(2))
+    agent = Agent(environment, action_selection_method=UCB(2))
     mocker.patch('random.choice', return_value=0)
     agent.act(environment)
     agent.act(environment)
@@ -48,7 +48,7 @@ def test_explore_when_action_value_close_to_greedy():
     action1 = Action(10, 0)
     action2 = Action(9.5, 0)
     environment = Environment(action1, action2)
-    agent = Agent(action_selection_method=UCB(2))
+    agent = Agent(environment, action_selection_method=UCB(2))
     agent.act(environment)
     agent.act(environment)
     agent.act(environment)
@@ -70,7 +70,7 @@ def test_select_with_gradient_bandit(mocker):
     action2 = Action.gaussian(1, 0)
     environment = Environment(action1, action2)
     gradient_bandit = GradientBandit(alpha=0.1, baseline=0)
-    agent = Agent(action_selection_method=gradient_bandit, value_estimation_method=None)
+    agent = Agent(environment, action_selection_method=gradient_bandit, value_estimation_method=None)
     mocker.patch('random.choices', return_value=[1])
     agent.act(environment)
     assert gradient_bandit.action_preferences[1] == 0.1 * 0.5

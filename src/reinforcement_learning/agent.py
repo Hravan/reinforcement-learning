@@ -13,6 +13,9 @@ class Agent:
     experience) to implement one of the action-value methods from chapter 2.
 
     Args:
+        environment: The `Environment` this agent will act in. Only
+            `environment.n_actions` is read; the environment itself is not
+            stored.
         action_selection_method: Callable `(context) -> int` deciding which
             action to choose next. Defaults to `RandomActionSelection()`.
         value_estimation_method: `ValueEstimationMethod` maintaining
@@ -22,14 +25,16 @@ class Agent:
             `GradientBandit`-driven agent).
     """
 
-    def __init__(self, action_selection_method=None, value_estimation_method=_DEFAULT_VALUE_ESTIMATION_METHOD):
-        self.n_actions = None
+    def __init__(self, environment, action_selection_method=None, value_estimation_method=_DEFAULT_VALUE_ESTIMATION_METHOD):
+        self.n_actions = environment.n_actions
         self.experience = Experience()
         self.action_selection_method = (
             action_selection_method if action_selection_method is not None else RandomActionSelection()
         )
+        if value_estimation_method is _DEFAULT_VALUE_ESTIMATION_METHOD:
+            value_estimation_method = IncrementalValueEstimation(self.n_actions)
         self.value_estimation_method = value_estimation_method
-        self._action_selection_context = None
+        self._action_selection_context = ActionSelectionContext(self)
 
     def act(self, environment):
         """Chooses an action, performs it in the environment, and learns from the reward.
@@ -37,12 +42,6 @@ class Agent:
         Args:
             environment: The `Environment` to act in.
         """
-        if self._action_selection_context is None:
-            self.n_actions = environment.n_actions
-            if self.value_estimation_method is _DEFAULT_VALUE_ESTIMATION_METHOD:
-                self.value_estimation_method = IncrementalValueEstimation(self.n_actions)
-            self._action_selection_context = ActionSelectionContext(self)
-
         action_index = self.action_selection_method(self._action_selection_context)
         reward = environment.step(action_index)
         self.experience.update(action_index, reward)
@@ -76,18 +75,22 @@ class Agent:
         '''Number of choices already made by the agent.'''
         return len(self.experience)
 
+    def __repr__(self):
+        return f'Agent(action_selection_method={self.action_selection_method!r}, value_estimation_method={self.value_estimation_method!r})'
+
 
 class EpsilonGreedyAgent(Agent):
     """An agent that selects actions using the epsilon-greedy method.
 
     Args:
+        environment: The `Environment` this agent will act in.
         epsilon: Probability of choosing a random action instead of the
             greedy one.
         **kwargs: Forwarded to `Agent.__init__`.
     """
 
-    def __init__(self, epsilon=0, **kwargs):
-        super().__init__(action_selection_method=EpsilonGreedy(epsilon), **kwargs)
+    def __init__(self, environment, epsilon=0, **kwargs):
+        super().__init__(environment, action_selection_method=EpsilonGreedy(epsilon), **kwargs)
 
 
 class ConstantStepSize:
@@ -111,6 +114,9 @@ class ConstantStepSize:
         """
         return self.step_size
 
+    def __repr__(self):
+        return f'ConstantStepSize(step_size={self.step_size})'
+
 
 class SampleAverageStepSize:
     """A step-size method that computes the running sample average."""
@@ -127,6 +133,9 @@ class SampleAverageStepSize:
         """
         return 1 / agent.experience.n_selected_last_action()
 
+    def __repr__(self):
+        return 'SampleAverageStepSize()'
+
 
 class IncrementalValueEstimation:
     """A value-estimation method that incrementally updates reward estimates.
@@ -140,6 +149,7 @@ class IncrementalValueEstimation:
     """
 
     def __init__(self, n_actions, initial_value=0, step_size_method=None):
+        self.initial_value = initial_value
         self.estimates = [initial_value for _ in range(n_actions)]
         self.step_size_method = step_size_method if step_size_method is not None else SampleAverageStepSize()
 
@@ -154,3 +164,6 @@ class IncrementalValueEstimation:
         """
         current_estimate = self.estimates[action_index]
         self.estimates[action_index] = current_estimate + self.step_size_method(agent) * (reward - current_estimate)
+
+    def __repr__(self):
+        return f'IncrementalValueEstimation(initial_value={self.initial_value}, step_size_method={self.step_size_method!r})'

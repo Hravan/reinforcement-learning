@@ -61,6 +61,9 @@ class UCB:
         """No-op: UCB has no internal state to update from feedback."""
         pass
 
+    def __repr__(self):
+        return f'UCB(exploration_coefficient={self.exploration_coefficient})'
+
 
 class GradientBandit:
     """The gradient-bandit action-selection method.
@@ -115,6 +118,9 @@ class GradientBandit:
             if i != action_index:
                 self.action_preferences[i] += -self.alpha * (reward - self.baseline) * probabilities[i]
 
+    def __repr__(self):
+        return f'GradientBandit(alpha={self.alpha}, baseline={self.baseline})'
+
 
 class RandomActionSelection:
     """An action-selection method that picks uniformly at random."""
@@ -133,6 +139,9 @@ class RandomActionSelection:
     def update(self, *args, **kwargs):
         """No-op: random selection has no internal state to update."""
         pass
+
+    def __repr__(self):
+        return 'RandomActionSelection()'
 
 
 class EpsilonGreedy:
@@ -164,3 +173,6 @@ class EpsilonGreedy:
     def update(self, *args, **kwargs):
         """No-op: epsilon-greedy has no internal state to update."""
         pass
+
+    def __repr__(self):
+        return f'EpsilonGreedy(epsilon={self.epsilon})'
