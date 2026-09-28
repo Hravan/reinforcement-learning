@@ -66,3 +66,11 @@ def test_experience_len():
     experience.update(0, 1)
     experience.update(1, 2)
     assert len(experience) == 2
+
+
+def test_experience_reward_history():
+    experience = Experience()
+    experience.update(0, 1)
+    experience.update(1, 2)
+    experience.update(0, 3)
+    assert experience.reward_history == [1, 2, 3]

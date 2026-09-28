@@ -59,6 +59,7 @@ class Experience:
 
     def __init__(self):
         self.action_history = []
+        self.reward_history = []
         self.sum_rewards = 0
         self._n_selected = {}
 
@@ -70,6 +71,7 @@ class Experience:
             reward: The reward received for that action.
         """
         self.action_history.append(action)
+        self.reward_history.append(reward)
         self.sum_rewards += reward
         self._n_selected[action] = self._n_selected.get(action, 0) + 1
 

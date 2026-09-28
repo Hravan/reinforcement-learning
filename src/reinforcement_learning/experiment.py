@@ -34,6 +34,21 @@ class OptimalActionRate(Metric):
         return agent.experience.last_action == environment.optimal_action
 
 
+class RecentMeanReward(Metric):
+    """An agent's mean reward over its n most recent steps.
+
+    Args:
+        n: Number of most recent steps to average over.
+    """
+
+    def __init__(self, n):
+        self.n = n
+
+    def __call__(self, agent, environment):
+        recent_rewards = agent.experience.reward_history[-self.n:]
+        return sum(recent_rewards) / len(recent_rewards)
+
+
 class Experiment:
     """Runs and scores agents against environments, repeated over many runs.
 

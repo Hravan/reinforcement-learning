@@ -4,7 +4,7 @@ from reinforcement_learning.action import Action
 from reinforcement_learning.agent import Agent
 from reinforcement_learning.environment import Environment
 from reinforcement_learning.action_selection import RandomActionSelection
-from reinforcement_learning.experiment import Experiment, ExperimentResult, MeanReward, OptimalActionRate
+from reinforcement_learning.experiment import Experiment, ExperimentResult, MeanReward, OptimalActionRate, RecentMeanReward
 
 
 def test_mean_reward_metric():
@@ -26,9 +26,30 @@ def test_optimal_action_rate_metric(mocker):
     assert metric(agent, environment) == True
 
 
+def test_recent_mean_reward_metric(mocker):
+    environment = Environment(Action(0, 1))
+    agent = Agent(environment)
+    mocker.patch('numpy.random.normal', side_effect=[1, 2, 3, 4])
+    for _ in range(4):
+        agent.act(environment)
+    metric = RecentMeanReward(n=2)
+    assert metric(agent, environment) == 3.5
+
+
+def test_recent_mean_reward_metric_fewer_than_n_steps(mocker):
+    environment = Environment(Action(0, 1))
+    agent = Agent(environment)
+    mocker.patch('numpy.random.normal', side_effect=[1, 2])
+    agent.act(environment)
+    agent.act(environment)
+    metric = RecentMeanReward(n=10)
+    assert metric(agent, environment) == 1.5
+
+
 def test_metric_name_from_class_name():
     assert MeanReward().name == 'MeanReward'
     assert OptimalActionRate().name == 'OptimalActionRate'
+    assert RecentMeanReward(n=5).name == 'RecentMeanReward'
 
 
 def test_experiment_run_shape():

@@ -14,6 +14,7 @@ classDiagram
 
     class Experience {
         +list~int~ action_history
+        +list~float~ reward_history
         +float sum_rewards
         +update(action_index, reward)
         +n_selected(action_index) int
@@ -100,6 +101,9 @@ classDiagram
     }
     class MeanReward
     class OptimalActionRate
+    class RecentMeanReward {
+        +int n
+    }
 
     class Experiment {
         +int n_runs
@@ -139,6 +143,7 @@ classDiagram
     SampleAverageStepSize ..|> StepSizeMethod
     MeanReward --|> Metric
     OptimalActionRate --|> Metric
+    RecentMeanReward --|> Metric
     Experiment "1" *-- "1" Metric : metric
     Experiment ..> Environment : run()
     Experiment ..> Agent : run()
@@ -191,6 +196,9 @@ Notes:
   random-walk step to the true value (a no-op if stationary).
 - Metric.name is a property computed from type(self).__name__. Subclasses
   implement __call__.
+- RecentMeanReward(n) averages the last n entries of
+  agent.experience.reward_history; if fewer than n steps have happened yet,
+  it averages whatever is available.
 - Experiment holds n_runs, n_steps and metric. run() takes agents (a list
   of `(environment) -> Agent` factories), action_factory (a
   `() -> list[Action]` called once per run) and group_name.
